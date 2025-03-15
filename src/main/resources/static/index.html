@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+    <!-- Левый список пользователей -->
+    <div class="scroll-list">
+        <h2>Users</h2>
+        <div id="usersList">
+            <!-- Кнопки будут добавляться динамически -->
+        </div>
+    </div>
+    <!-- Основное содержимое -->
+    <div class="main-content">
+        <h1>Voice Chat Control</h1>
+        <form id="clientsForm">
+            <label for="clients">Recipients:</label>
+            <input type="text" id="clients" placeholder="Username (comma-separated)">
+            <button type="submit">Set Clients</button>
+        </form>
+        <form id="blacklistForm">
+            <label for="blacklist">Blacklist:</label>
+            <input type="text" id="blacklist" placeholder="Blocked username (comma-separated)">
+            <button type="submit">Set Blacklist</button>
+        </form>
+        <div class="controls">
+            <button id="recordingButton">Start Recording</button>
+            <button id="playAudio">Play Audio</button>
+        </div>
+    </div>
+    <!-- Правый список почты -->
+    <div class="scroll-list">
+        <h2>Mail</h2>
+        <div id="mailList">
+            <!-- Кнопки будут добавляться динамически -->
+        </div>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>

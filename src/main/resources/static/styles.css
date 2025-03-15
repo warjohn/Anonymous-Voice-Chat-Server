@@ -1,0 +1,105 @@
+/* Общий стиль для страницы */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f9;
+}
+
+/* Контейнер для всего содержимого */
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 80%;
+    max-width: 1200px;
+}
+
+/* Стили для левого и правого списков */
+.scroll-list {
+    width: 20%;
+    text-align: center;
+}
+
+.scroll-list h2 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.scroll-list .user-button,
+.scroll-list .mail-button {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 5px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap; /* Запрет переноса текста */
+    overflow: hidden; /* Скрытие лишнего текста */
+    text-overflow: ellipsis; /* Добавление многоточия */
+}
+
+.scroll-list .user-button:hover,
+.scroll-list .mail-button:hover {
+    background-color: #0056b3;
+}
+
+/* Активное состояние кнопки в списке Mail */
+.scroll-list .mail-button.active {
+    background-color: #28a745; /* Зеленый цвет */
+}
+
+/* Основное содержимое */
+.main-content {
+    width: 60%;
+    text-align: center;
+}
+
+.main-content h1 {
+    margin-bottom: 20px;
+    font-size: 2rem;
+}
+
+.main-content form {
+    margin-bottom: 20px;
+}
+
+.main-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.main-content input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.main-content button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+.main-content button:hover {
+    background-color: #0056b3;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
