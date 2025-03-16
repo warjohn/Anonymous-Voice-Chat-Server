@@ -7,6 +7,7 @@ import org.example.utility.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ public class CertificateController {
 
     private String clients; // Stores the current client username
     private String sender; // Stores the sender's email or identifier
-    private List<String> blacklist = new ArrayList<>(); // A list of blacklisted users
+    private List<String> blacklist = new ArrayList<>(); // A list of blacklisted users TODO make ban users
 
     private final Audio audioService = new Audio(); // Service for handling audio recording and playback
     private final DataBase dataBase; // Database service for interacting with the database
@@ -86,72 +87,49 @@ public class CertificateController {
     }
 
     /**
-     * Handles the "/start-recording" endpoint. Starts recording audio from the microphone.
+     * Handles the "/upload-audio" endpoint. Processes uploaded audio files.
+     * @param file the uploaded audio file
      * @param request the HTTP request object
-     * @return a ResponseEntity indicating whether the recording started successfully
+     * @return a ResponseEntity indicating success or failure
      */
-    @PostMapping("/start-recording")
-    public ResponseEntity<String> startRecording(HttpServletRequest request) {
-        System.out.println("start-recording");
-        if (clients == null) {
-            return ResponseEntity.status(404).body("Enter username - "); // Ensure a client username is set
-        }
-        try {
-            audioService.startMicrophone(); // Start recording audio
-            return ResponseEntity.ok("Recording started successfully.");
+    @PostMapping("/upload-audio")
+    public ResponseEntity<String> uploadAudio(@RequestParam("audio") MultipartFile file, HttpServletRequest request) {
+        try (var inputStream = file.getInputStream()) { // Use try-with-resources to ensure proper resource management
+            byte[] audioData = file.getBytes();
+            if (audioData.length == 20) {
+                return ResponseEntity.status(300).body("Do nothing");
+            }
+            String compressedAudio = audioService.compressAudio(audioData);
+            dataBase.insertMessage(
+                    Utils.calculateHash(request.getRemoteAddr()),
+                    Utils.calculateHash(request.getRemoteAddr()),
+                    clients,
+                    compressedAudio
+            );
+            return ResponseEntity.ok("Audio uploaded successfully.");
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed to start recording: " + e.getMessage());
+            return ResponseEntity.status(500).body("Failed to upload audio: " + e.getMessage());
         }
     }
 
     /**
-     * Handles the "/stop-recording" endpoint. Stops recording audio and saves it to the database.
+     * Handles the "/get-audio" endpoint. Retrieves and decompresses audio data.
      * @param request the HTTP request object
-     * @return a ResponseEntity indicating whether the recording stopped successfully
+     * @return a ResponseEntity containing the audio data or an error message
+     * @throws SQLException if an error occurs while querying the database
      */
-    @PostMapping("/stop-recording")
-    public ResponseEntity<String> stopRecodring(HttpServletRequest request) {
-        System.out.println("stop-recording");
+    @GetMapping("/get-audio")
+    public ResponseEntity<byte[]> downloadAudio(HttpServletRequest request) throws SQLException {
         try {
-            audioService.stopMicrophone(); // Stop recording audio
-            String audio = audioService.compressAudio(audioService.getCapturedAudio()); // Compress the recorded audio
-            // Save the compressed audio to the database
-            dataBase.insertMessage(Utils.calculateHash(request.getRemoteAddr()), Utils.calculateHash(request.getRemoteAddr()), clients, audio);
-            return ResponseEntity.ok("Recording stopped successfully.");
+            String compressedAudio = dataBase.getAudio(Utils.calculateHash(request.getRemoteAddr()), sender);
+            byte[] decompressedAudio = audioService.decompressAudio(compressedAudio);
+            dataBase.deleteMessageById(sender); // Delete the message after retrieval
+            return ResponseEntity.status(200).body(decompressedAudio);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed to stop recording: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Handles the "/play-audio" endpoint. Plays back audio stored in the database.
-     * @param request the HTTP request object
-     * @return a ResponseEntity indicating whether the audio playback started successfully
-     */
-    @PostMapping("/play-audio")
-    public ResponseEntity<String> playAudio(HttpServletRequest request) {
-        System.out.println("play-audio");
-        try {
-            // Decompress and play the audio retrieved from the database
-            audioService.playAndStopAudio(audioService.decompressAudio(dataBase.getAudio(Utils.calculateHash(request.getRemoteAddr()), sender)));
-            return ResponseEntity.ok("Audio playback started successfully.");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Failed to play audio: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Handles the "/stop-audio" endpoint. Stops audio playback.
-     * @return a ResponseEntity indicating whether the audio was stopped successfully
-     */
-    @PostMapping("/stop-audio")
-    public ResponseEntity<String> stopAudio() {
-        System.out.println("stop-audio");
-        try {
-            audioService.stopMicrophone(); // Stop the microphone (TODO: Currently does nothing)
-            return ResponseEntity.ok("Audio stopped");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("How can you call this error, pls don't touch my code again");
+            return ResponseEntity.status(500).body(null);
+        } finally {
+            // Ensure resources are released by clearing internal buffers
+            audioService.clearBuffer(); // Clear the audio buffer explicitly
         }
     }
 
@@ -161,9 +139,8 @@ public class CertificateController {
      * @return a ResponseEntity indicating success
      */
     @PostMapping("/set-clients")
-    public ResponseEntity<Void> setClients(@RequestBody String client) {
-        this.clients = client; // Set the client username
-        System.out.println("clients - " + clients.toString());
+    public ResponseEntity<Void> setClients(@RequestBody String[] client) {
+        this.clients = client[0]; // Set the client username
         return ResponseEntity.ok().build(); // Return a success response
     }
 
@@ -176,7 +153,6 @@ public class CertificateController {
     public ResponseEntity<Void> setBlacklist(@RequestBody List<String> blackList) {
         this.blacklist.clear(); // Clear the existing blacklist
         this.blacklist.addAll(blackList); // Add all new blacklisted users
-        System.out.println("blacklist" + blacklist);
         return ResponseEntity.ok().build(); // Return a success response
     }
 }

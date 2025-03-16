@@ -43,7 +43,7 @@ public class Interceptor implements HandlerInterceptor {
         dataBase.insertNewUser(Utils.calculateHash(request.getRemoteAddr()));
 
         // Log the intercepted request URL for debugging purposes
-        System.out.println("CustomInterceptor: Before controller - URL = " + request.getRequestURL());
+        //System.out.println("CustomInterceptor: Before controller - URL = " + request.getRequestURL());
 
         return true; // Continue processing the request
     }
@@ -62,6 +62,6 @@ public class Interceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
             throws Exception {
         // Log that the response has been sent for debugging purposes
-        System.out.println("CustomInterceptor: After controller - Response sent");
+        //System.out.println("CustomInterceptor: After controller - Response sent");
     }
 }

@@ -3,10 +3,8 @@ package org.example.audio;
 import javax.sound.sampled.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-
 import java.util.Base64;
 
 public class Audio {
@@ -44,14 +42,13 @@ public class Audio {
     // Format of the audio data (sampling rate, sample size, etc.)
     private AudioFormat audioFormat;
 
+    private byte[] decoded;
+
     /**
      * Constructor to initialize the audio format and output stream.
      */
     public Audio() {
-        // Initialize the audio format with the specified parameters
         this.audioFormat = new AudioFormat(SAMPLE_RATE, SAMPLE_SIZE_IN_BITS, CHANNELS, SIGNED, BIG_ENDIAN);
-
-        // Initialize the output stream to store recorded audio data
         byteArrayOutputStream = new ByteArrayOutputStream();
     }
 
@@ -60,39 +57,28 @@ public class Audio {
      * @throws LineUnavailableException if the microphone line is unavailable
      */
     public void startMicrophone() throws LineUnavailableException {
-        // Create a description of the desired audio line
         DataLine.Info info = new DataLine.Info(TargetDataLine.class, audioFormat);
-
-        // Get the microphone line from the system
         microphone = (TargetDataLine) AudioSystem.getLine(info);
-
-        // Open and start the microphone line
         microphone.open(audioFormat);
         microphone.start();
 
-        // Set the recording flag to true
         isRecording = true;
 
-        // Start a thread to continuously read audio data from the microphone
         Thread recordingThread = new Thread(() -> {
-            byte[] buffer = new byte[4096]; // Buffer to temporarily store audio data
-
-            // Continuously read data while recording is active
+            byte[] buffer = new byte[4096];
             while (isRecording) {
-                int bytesRead = microphone.read(buffer, 0, buffer.length); // Read audio data into the buffer
-                byteArrayOutputStream.write(buffer, 0, bytesRead); // Write the data to the output stream
+                int bytesRead = microphone.read(buffer, 0, buffer.length);
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
             }
         });
-        recordingThread.start(); // Start the recording thread
+        recordingThread.start();
     }
 
     /**
      * Stops recording audio from the microphone.
      */
     public void stopMicrophone() {
-        isRecording = false; // Stop the recording loop
-
-        // Close the microphone line if it is open
+        isRecording = false;
         if (microphone != null) {
             microphone.stop();
             microphone.close();
@@ -106,19 +92,15 @@ public class Audio {
     public byte[] captureAudio() {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[CHUNK_SIZE];
-        int bytesRead;
-
         try {
-            // Read one chunk of audio data from the microphone
-            while ((bytesRead = microphone.read(buffer, 0, buffer.length)) > 0) {
-                byteArrayOutputStream.write(buffer, 0, bytesRead); // Write the data to the output stream
-                break; // Exit after capturing one chunk
+            while ((microphone.read(buffer, 0, buffer.length)) > 0) {
+                byteArrayOutputStream.write(buffer, 0, buffer.length);
+                break;
             }
         } catch (Exception e) {
-            e.printStackTrace(); // Print any errors that occur
+            e.printStackTrace();
         }
-
-        return byteArrayOutputStream.toByteArray(); // Return the captured audio data
+        return byteArrayOutputStream.toByteArray();
     }
 
     /**
@@ -126,13 +108,8 @@ public class Audio {
      * @throws LineUnavailableException if the speaker line is unavailable
      */
     public void startSpeakers() throws LineUnavailableException {
-        // Create a description of the desired audio line
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
-
-        // Get the speaker line from the system
         speakers = (SourceDataLine) AudioSystem.getLine(info);
-
-        // Open and start the speaker line
         speakers.open(audioFormat);
         speakers.start();
     }
@@ -141,7 +118,6 @@ public class Audio {
      * Stops the audio playback system.
      */
     public void stopSpeakers() {
-        // Close the speaker line if it is open
         if (speakers != null) {
             speakers.stop();
             speakers.close();
@@ -153,21 +129,18 @@ public class Audio {
      * @param audioData the audio data to play
      */
     public void playAudio(byte[] audioData) {
-        // Initialize the speaker system if it is not already open
         if (speakers == null || !speakers.isOpen()) {
             try {
                 startSpeakers();
             } catch (LineUnavailableException e) {
-                e.printStackTrace(); // Print any errors that occur
+                e.printStackTrace();
                 return;
             }
         }
-
         try {
-            // Write the audio data to the speaker line for playback
             speakers.write(audioData, 0, audioData.length);
         } catch (Exception e) {
-            e.printStackTrace(); // Print any errors that occur
+            e.printStackTrace();
         }
     }
 
@@ -176,8 +149,8 @@ public class Audio {
      * @param audioData the audio data to play
      */
     public void playAndStopAudio(byte[] audioData) {
-        playAudio(audioData); // Play the audio data
-        stopSpeakers(); // Stop the speaker system after playback
+        playAudio(audioData);
+        stopSpeakers();
     }
 
     /**
@@ -185,7 +158,11 @@ public class Audio {
      * @return a byte array containing the recorded audio data
      */
     public byte[] getCapturedAudio() {
-        return byteArrayOutputStream.toByteArray(); // Return the recorded audio data
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    public void clearAudioBuffer() {
+        byteArrayOutputStream.reset();
     }
 
     /**
@@ -197,15 +174,11 @@ public class Audio {
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
              GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
 
-            gzipOutputStream.write(rawAudio); // Compress the raw audio data
-            gzipOutputStream.finish(); // Finalize the compression process
-
-            // Encode the compressed data in Base64 and return it as a string
+            gzipOutputStream.write(rawAudio);
+            gzipOutputStream.finish();
             return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
         } catch (Exception e) {
-            e.printStackTrace(); // Print any errors that occur
-
-            // If compression fails, return the raw audio data encoded in Base64
+            e.printStackTrace();
             return Base64.getEncoder().encodeToString(rawAudio);
         }
     }
@@ -216,26 +189,27 @@ public class Audio {
      * @return a byte array containing the decompressed audio data
      */
     public byte[] decompressAudio(String compressedAudioString) {
-        byte[] decoded = Base64.getDecoder().decode(compressedAudioString); // Decode the Base64 string
-
-        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(decoded);
+        this.decoded = Base64.getDecoder().decode(compressedAudioString);
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(this.decoded);
              GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream);
              ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
 
             byte[] buffer = new byte[1024];
             int bytesRead;
-
-            // Read the decompressed data in chunks
             while ((bytesRead = gzipInputStream.read(buffer)) != -1) {
-                byteArrayOutputStream.write(buffer, 0, bytesRead); // Write the decompressed data to the output stream
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
             }
-
-            return byteArrayOutputStream.toByteArray(); // Return the decompressed audio data
+            return byteArrayOutputStream.toByteArray();
         } catch (Exception e) {
-            e.printStackTrace(); // Print any errors that occur
-
-            // If decompression fails, return the decoded (but still compressed) data
+            e.printStackTrace();
             return decoded;
+        }
+    }
+
+    public void clearBuffer() {
+        if (this.decoded != null) {
+            this.decoded = null;
+            System.gc();
         }
     }
 }
